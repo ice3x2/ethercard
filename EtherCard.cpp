@@ -16,7 +16,7 @@
 #define WRITEBUF  0
 #define READBUF   1
 
-//#define FLOATEMIT // uncomment line to enable $T in emit_P for float emitting
+#define FLOATEMIT // uncomment line to enable $T in emit_P for float emitting
 
 byte Stash::map[SCRATCH_MAP_SIZE];
 Stash::Block Stash::bufs[2];
@@ -320,6 +320,7 @@ void BufferFiller::emit_p(PGM_P fmt, ...) {
     va_start(ap, fmt);
     for (;;) {
         char c = pgm_read_byte(fmt++);
+        uint8_t defaultPa;
         if (c == 0)
             break;
         if (c != '$') {
@@ -337,7 +338,18 @@ void BufferFiller::emit_p(PGM_P fmt, ...) {
             break;
 #ifdef FLOATEMIT
         case 'T':
-            dtostrf    (    va_arg(ap, double), 10, 3, (char*)ptr );
+            defaultPa = 3;
+            c = pgm_read_byte(fmt);
+            if(c != 0 && c == '.') {
+                c = pgm_read_byte(++fmt);
+                if(c != 0 && c >= '0' && c <= '9') {
+                   fmt++;
+                   defaultPa = c - '0';
+                } else {
+                    defaultPa = 0;
+                }
+            }
+            dtostrf    (va_arg(ap, double), 10, defaultPa, (char*)ptr );
             break;
 #endif
         case 'H': {
@@ -381,7 +393,7 @@ void BufferFiller::emit_p(PGM_P fmt, ...) {
             *ptr++ = c;
             continue;
         }
-        ptr += strlen((char*) ptr);
+        ptr += strlen((char*)ptr);
     }
     va_end(ap);
 }
